@@ -1,0 +1,60 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Main
+
+static int nthreads = 8;
+
+float resolution=512.0;
+RWTexture2DArray<float4> o_cube;
+float3 direction;
+
+float glowDiv=100.0;
+float radius = 2.0;
+
+#include "Assets/Shaders/RayFunctions.cginc"
+
+[numthreads(8, 8, 6)]
+void Main (uint3 id : SV_DispatchThreadID)
+{
+    sphere=0;
+    float3 startDir;
+    float2 offset = (id.xy * 2.0 - resolution) / resolution;
+    
+    if(id.z==0)
+    {
+        startDir.x = 1;
+        startDir.zy = offset * float2(-1,-1);
+    }
+    else if(id.z==1)
+    {
+        startDir.x = -1;
+        startDir.zy = offset * float2(1,-1);
+    }
+    else if(id.z==2)
+    {
+        startDir.y = 1;
+        startDir.xz = offset;
+    }
+    else if(id.z==3)
+    {
+        startDir.y = -1;
+        startDir.xz = offset * float2(1,-1);
+    }
+    else if(id.z==4)
+    {
+        startDir.z = 1;
+        startDir.xy = offset * float2(1,-1);
+    }
+    else if(id.z==5)
+    {
+        startDir.z = -1;
+        startDir.xy = offset * float2(-1,-1);
+    }
+
+    float3 startPosition = normalize(startDir) * radius;
+
+    float2 scene = raymarch(startPosition, -normalize(startDir));
+    
+    float4 col = float4(1,1,1,scene.y/20.) * pow(glow/glowDiv,1.2);
+    col.a=saturate(1.0-col.a);
+    o_cube[id] = col;
+}
